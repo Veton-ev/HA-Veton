@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Welcome to Veton",
+        "description": "This wizard will set up your **Veton EV charger** with Home Assistant.\n\nWhen you press **Next**, we will scan the network for your CHARX controller.\n\n- (Optional) A HomeWizard P1 meter for energy management\n\nPress **Next** to begin."
+      },
+      "charger": {
+        "title": "Connect your charger",
+        "description": "We found **{discovered_count}** charger(s) on the network.\n\nSelect your charger from the list, or enter the IP address manually.",
+        "data": {
+          "discovered_charger": "Discovered chargers",
+          "host": "CHARX IP address (if entering manually)",
+          "port": "Modbus TCP port",
+          "connector": "Connector number"
+        }
+      },
+      "p1_choice": {
+        "title": "Mains energy meter",
+        "description": "A mains energy meter (like the HomeWizard P1) enables smart charging features:\n\n- **Solar surplus charging** — use your own solar energy\n- **Capacity limitation** — prevent mains fuse overload\n- **Peak shaving** — reduce capacity tariff costs\n\nDo you want to add a meter?",
+        "data": {
+          "p1_enabled": "Add a HomeWizard P1 meter"
+        }
+      },
+      "p1_setup": {
+        "title": "Connect your P1 meter",
+        "description": "We found **{discovered_count}** P1 meter(s) on the network.\n\nSelect your meter or enter the IP address manually.\n\nMake sure the local API is enabled in the HomeWizard Energy app (Settings > Meters > your meter > Local API).",
+        "data": {
+          "discovered_device": "Discovered devices",
+          "p1_host": "P1 meter IP address (or leave empty if selected above)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the CHARX controller. Check the IP address, ensure port 502 is open, and the Modbus server is running.",
+      "no_host": "Please select a discovered charger or enter an IP address manually.",
+      "p1_cannot_connect": "Cannot connect to the P1 meter. Check the IP address and ensure the local API is enabled in the HomeWizard Energy app.",
+      "p1_no_host": "Please enter an IP address or select a discovered device."
+    },
+    "abort": {
+      "already_configured": "This charger connector is already configured.",
+      "not_veton_device": "This device is not a Veton charger."
+    }
+  }
+}

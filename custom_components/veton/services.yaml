@@ -1,0 +1,10 @@
+export_sessions_csv:
+  name: Export charging sessions CSV
+  description: Export all recorded charging sessions as CSV data.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: The config entry ID of the charger (optional, uses first if omitted).
+      required: false
+      selector:
+        text:

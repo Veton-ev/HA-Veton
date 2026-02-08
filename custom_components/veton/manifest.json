@@ -1,0 +1,12 @@
+{
+  "domain": "veton",
+  "name": "Veton EV Charger",
+  "codeowners": ["@veton-be"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://veton.be",
+  "iot_class": "local_polling",
+  "requirements": ["pymodbus>=3.6.0", "aiohttp>=3.9.0"],
+  "zeroconf": [{"type": "_hwenergy._tcp.local."}],
+  "version": "0.1.0"
+}

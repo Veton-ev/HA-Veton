@@ -1,0 +1,9 @@
+{
+  "domain": "veton_setup",
+  "name": "Veton Setup Helper",
+  "codeowners": ["@veton-be"],
+  "dependencies": [],
+  "documentation": "https://veton.be",
+  "integration_type": "helper",
+  "version": "0.1.0"
+}
