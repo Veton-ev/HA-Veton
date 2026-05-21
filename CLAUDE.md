@@ -85,9 +85,19 @@ part of the standalone HACS integration.
 
 ## Testing
 
-No formal test suite. Run HA in Docker with `--network=host` to reach the CHARX:
+Unit tests (pytest + `pytest-homeassistant-custom-component`) live in `tests/`:
+```bash
+python -m venv .venv && . .venv/bin/activate
+pip install -r requirements_test.txt
+pytest
+```
+Coverage: modbus decoders + register mapping + write offsets/clamping +
+reconnect, session-tracker state machine + persistence, config/reconfigure/
+import flows, end-to-end setup/unload, dashboard generation. CI runs hassfest +
+HACS validation + pytest (`.github/workflows/validate.yml`).
+
+For a live smoke test, run HA in Docker with `--network=host` to reach the CHARX:
 ```bash
 docker run -d --name ha --network=host -v /path/to/config:/config homeassistant/home-assistant:stable
 ```
-Deploy to `/config/custom_components/veton/` and restart. Tested manually
-against real CHARX hardware.
+Deploy to `/config/custom_components/veton/` and restart.
