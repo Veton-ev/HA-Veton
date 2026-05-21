@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, Supp
 
 from .const import CONF_CONNECTOR, DEFAULT_CONNECTOR, DEFAULT_PORT, DEFAULT_SLAVE, DOMAIN
 from .coordinator import VetonCoordinator
-from .dashboard import async_create_dashboard
+from .dashboard import async_create_dashboard, dashboard_target
 from .modbus_client import CharxModbusClient
 from .session_tracker import SessionTracker
 
@@ -76,8 +76,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             supports_response=SupportsResponse.ONLY,
         )
 
-    # Provision a dedicated "Veton EV Charger" dashboard in the sidebar.
-    # This never overrides the user's existing default dashboard.
+    # Provision a dedicated dashboard in the sidebar — one per charging point so
+    # multi-connector chargers don't overwrite each other. Never overrides the
+    # user's existing default dashboard.
     from homeassistant.helpers import entity_registry as er
 
     ent_reg = er.async_get(hass)
@@ -85,7 +86,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ent.entity_id
         for ent in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
     ]
-    await async_create_dashboard(hass, entity_ids)
+    url_path, dash_title = dashboard_target(connector)
+    await async_create_dashboard(hass, entity_ids, url_path, dash_title)
 
     # Keep the charger watchdog alive on every coordinator update
     async def _watchdog_do_refresh() -> None:

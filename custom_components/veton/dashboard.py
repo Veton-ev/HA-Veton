@@ -13,11 +13,25 @@ import logging
 from homeassistant.components import frontend
 from homeassistant.core import HomeAssistant
 
+from .const import DEFAULT_CONNECTOR
+
 _LOGGER = logging.getLogger(__name__)
 
-DASHBOARD_URL = "veton-charger"
+DASHBOARD_BASE_URL = "veton-charger"
 DASHBOARD_TITLE = "Veton EV Charger"
 DASHBOARD_ICON = "mdi:ev-station"
+
+
+def dashboard_target(connector: int) -> tuple[str, str]:
+    """Return the (url_path, title) for a charging point's dashboard.
+
+    Connector 1 keeps the original ``veton-charger`` URL (back-compat); extra
+    charging points each get their own dashboard so they no longer overwrite
+    one another.
+    """
+    if connector == DEFAULT_CONNECTOR:
+        return DASHBOARD_BASE_URL, DASHBOARD_TITLE
+    return f"{DASHBOARD_BASE_URL}-{connector}", f"{DASHBOARD_TITLE} (Connector {connector})"
 
 
 def _find_entity(
@@ -120,13 +134,15 @@ def generate_dashboard_config(entity_ids: list[str]) -> dict:
 
 
 async def async_create_dashboard(
-    hass: HomeAssistant, entity_ids: list[str]
+    hass: HomeAssistant, entity_ids: list[str], url_path: str, title: str
 ) -> None:
-    """Create or update the Veton sidebar dashboard via HA's internal APIs."""
+    """Create or update a Veton sidebar dashboard via HA's internal APIs."""
     try:
         config = generate_dashboard_config(entity_ids)
-        await _create_dashboard_via_collection(hass, config)
-        _LOGGER.info("Veton dashboard created with %d entities", len(entity_ids))
+        await _create_dashboard_via_collection(hass, config, url_path, title)
+        _LOGGER.info(
+            "Veton dashboard '%s' created with %d entities", url_path, len(entity_ids)
+        )
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning(
             "Could not auto-create dashboard (non-critical): %s", err, exc_info=True
@@ -134,7 +150,7 @@ async def async_create_dashboard(
 
 
 async def _create_dashboard_via_collection(
-    hass: HomeAssistant, config: dict
+    hass: HomeAssistant, config: dict, url_path: str, title: str
 ) -> None:
     """Create the dashboard using HA's DashboardsCollection + panel APIs."""
     from homeassistant.components.lovelace.const import LOVELACE_DATA
@@ -149,20 +165,20 @@ async def _create_dashboard_via_collection(
         return
 
     # If the dashboard already exists, just refresh its content
-    if DASHBOARD_URL in lovelace_data.dashboards:
-        _LOGGER.debug("Veton dashboard already exists, updating content")
-        await lovelace_data.dashboards[DASHBOARD_URL].async_save(config)
+    if url_path in lovelace_data.dashboards:
+        _LOGGER.debug("Veton dashboard '%s' already exists, updating content", url_path)
+        await lovelace_data.dashboards[url_path].async_save(config)
         return
 
     # Step 1: Persist the dashboard via a DashboardsCollection (HA's own Store)
     coll = DashboardsCollection(hass)
     await coll.async_load()
 
-    existing = [i for i in coll.async_items() if i.get("url_path") == DASHBOARD_URL]
+    existing = [i for i in coll.async_items() if i.get("url_path") == url_path]
     if not existing:
         await coll.async_create_item({
-            "url_path": DASHBOARD_URL,
-            "title": DASHBOARD_TITLE,
+            "url_path": url_path,
+            "title": title,
             "icon": DASHBOARD_ICON,
             "show_in_sidebar": True,
             "require_admin": False,
@@ -173,25 +189,25 @@ async def _create_dashboard_via_collection(
         frontend.async_register_built_in_panel(
             hass,
             component_name="lovelace",
-            sidebar_title=DASHBOARD_TITLE,
+            sidebar_title=title,
             sidebar_icon=DASHBOARD_ICON,
-            frontend_url_path=DASHBOARD_URL,
+            frontend_url_path=url_path,
             config={"mode": "storage"},
             require_admin=False,
             update=False,
         )
     except ValueError:
-        _LOGGER.debug("Panel %s already registered", DASHBOARD_URL)
+        _LOGGER.debug("Panel %s already registered", url_path)
 
     # Step 3: Create LovelaceStorage in hass.data and save content
     dashboard_info = {
-        "id": DASHBOARD_URL,
-        "url_path": DASHBOARD_URL,
-        "title": DASHBOARD_TITLE,
+        "id": url_path,
+        "url_path": url_path,
+        "title": title,
         "icon": DASHBOARD_ICON,
         "mode": "storage",
         "require_admin": False,
         "show_in_sidebar": True,
     }
-    lovelace_data.dashboards[DASHBOARD_URL] = LovelaceStorage(hass, dashboard_info)
-    await lovelace_data.dashboards[DASHBOARD_URL].async_save(config)
+    lovelace_data.dashboards[url_path] = LovelaceStorage(hass, dashboard_info)
+    await lovelace_data.dashboards[url_path].async_save(config)

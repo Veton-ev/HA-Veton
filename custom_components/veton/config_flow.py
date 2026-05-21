@@ -21,6 +21,12 @@ from .modbus_client import CharxModbusClient
 _LOGGER = logging.getLogger(__name__)
 
 
+def _entry_title(device_name: str, connector: int) -> str:
+    """Entry/device title, suffixed with the connector for multi-CP chargers."""
+    base = f"Veton Charger - {device_name}"
+    return base if connector == DEFAULT_CONNECTOR else f"{base} (Connector {connector})"
+
+
 def _connection_schema(
     host: str = "", port: int = DEFAULT_PORT, connector: int = DEFAULT_CONNECTOR
 ) -> vol.Schema:
@@ -74,7 +80,7 @@ class VetonConfigFlow(ConfigFlow, domain=DOMAIN):
             ok, device_name = await self._test_connection(host, port, connector)
             if ok:
                 return self.async_create_entry(
-                    title=f"Veton Charger - {device_name}",
+                    title=_entry_title(device_name, connector),
                     data={
                         CONF_HOST: host,
                         CONF_PORT: port,
@@ -138,7 +144,7 @@ class VetonConfigFlow(ConfigFlow, domain=DOMAIN):
 
         device_name = import_data.get("device_name", f"CHARX ({host})")
         return self.async_create_entry(
-            title=f"Veton Charger - {device_name}",
+            title=_entry_title(device_name, connector),
             data={
                 CONF_HOST: host,
                 CONF_PORT: port,

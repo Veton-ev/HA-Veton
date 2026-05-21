@@ -4,7 +4,19 @@ from __future__ import annotations
 
 import json
 
-from custom_components.veton.dashboard import _find_entity, generate_dashboard_config
+from custom_components.veton.dashboard import (
+    _find_entity,
+    dashboard_target,
+    generate_dashboard_config,
+)
+
+
+def test_dashboard_target_per_connector():
+    # Connector 1 keeps the original URL for backward compatibility
+    assert dashboard_target(1) == ("veton-charger", "Veton EV Charger")
+    # Extra charging points get their own URL + title (no clobbering)
+    assert dashboard_target(2) == ("veton-charger-2", "Veton EV Charger (Connector 2)")
+    assert dashboard_target(3) == ("veton-charger-3", "Veton EV Charger (Connector 3)")
 
 
 def test_find_entity_matches_domain_and_keywords():

@@ -55,6 +55,24 @@ async def test_user_flow_success(hass):
     assert result2["result"].unique_id == "10.0.0.5:502:1"
 
 
+async def test_user_flow_second_connector_gets_suffixed_title(hass):
+    client_patch, setup_patch, connect, name = _mock_client()
+    with client_patch as cls, setup_patch:
+        _configure_mock(cls, connect, name)
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result2 = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {CONF_HOST: "10.0.0.5", CONF_PORT: 502, CONF_CONNECTOR: 2},
+        )
+        await hass.async_block_till_done()
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["title"] == "Veton Charger - Test Charger (Connector 2)"
+    assert result2["result"].unique_id == "10.0.0.5:502:2"
+
+
 async def test_user_flow_cannot_connect(hass):
     client_patch, setup_patch, _, name = _mock_client(connect=False)
     with client_patch as cls, setup_patch:

@@ -64,6 +64,17 @@ After restarting:
 
 To change the connection later, open the integration and choose **Reconfigure**.
 
+## Multiple charging points
+
+For a controller with more than one charging point, **add the integration once
+per point** — same IP, but a different **Connector number** each time. The CHARX
+register base is `connector × 1000`, so connector 2 reads/writes the `2xxx`
+block, connector 3 the `3xxx` block, and so on.
+
+Each connector becomes its own device with its own entities, safety watchdog,
+and dashboard (`Veton EV Charger`, `Veton EV Charger (Connector 2)`, …) — they
+no longer overwrite one another.
+
 ## Entities
 
 | Type | Examples |
