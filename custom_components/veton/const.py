@@ -7,9 +7,6 @@ DEFAULT_CONNECTOR = 1
 DEFAULT_SCAN_INTERVAL = 5  # seconds
 
 CONF_CONNECTOR = "connector"
-CONF_P1_HOST = "p1_host"
-CONF_P1_ENABLED = "p1_enabled"
-CONF_TARIFF_ENABLED = "tariff_enabled"
 
 # IEC 61851-1 vehicle status codes
 VEHICLE_STATUS = {

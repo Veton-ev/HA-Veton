@@ -4,9 +4,11 @@
   "codeowners": ["@veton-be"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://veton.be",
+  "documentation": "https://github.com/Veton-ev/HA-Veton",
+  "issue_tracker": "https://github.com/Veton-ev/HA-Veton/issues",
+  "integration_type": "device",
   "iot_class": "local_polling",
-  "requirements": ["pymodbus>=3.6.0", "aiohttp>=3.9.0"],
-  "zeroconf": [{"type": "_hwenergy._tcp.local."}],
-  "version": "0.1.0"
+  "loggers": ["pymodbus"],
+  "requirements": ["pymodbus>=3.6.0"],
+  "version": "1.0.0"
 }
