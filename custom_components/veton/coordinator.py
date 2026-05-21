@@ -42,11 +42,15 @@ class VetonCoordinator(DataUpdateCoordinator[CharxData]):
         )
         self.client = client
         self.session_tracker = session_tracker
+        self._global_data: CharxGlobalData | None = None
 
     async def _async_update_data(self) -> CharxData:
         """Read the charger state once per cycle."""
         try:
-            global_data = await self.client.read_global_data()
+            # Station info (name, firmware) never changes — read it once and
+            # cache it to spare the charger's single-core CPU 5s polling.
+            if self._global_data is None or not self._global_data.device_name:
+                self._global_data = await self.client.read_global_data()
             connector_data = await self.client.read_connector_data()
         except ModbusException as err:
             raise UpdateFailed(f"Modbus communication error: {err}") from err
@@ -54,9 +58,9 @@ class VetonCoordinator(DataUpdateCoordinator[CharxData]):
             raise UpdateFailed(f"Connection error: {err}") from err
 
         # Track charging sessions (start/stop, RFID, energy, peak power)
-        self.session_tracker.update(connector_data)
+        await self.session_tracker.update(connector_data)
 
         return CharxData(
-            global_data=global_data,
+            global_data=self._global_data,
             connector_data=connector_data,
         )

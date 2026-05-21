@@ -31,7 +31,8 @@ from .coordinator import CharxData, VetonCoordinator
 class VetonSensorDescription(SensorEntityDescription):
     """Describe a Veton sensor."""
 
-    value_fn: Callable[[CharxData], float | int | str | None]
+    # None for sensors handled specially (e.g. session_count via the tracker)
+    value_fn: Callable[[CharxData], float | int | str | None] | None
 
 
 CONNECTOR_SENSORS: tuple[VetonSensorDescription, ...] = (

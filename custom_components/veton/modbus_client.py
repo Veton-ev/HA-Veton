@@ -113,7 +113,8 @@ class CharxModbusClient:
 
     async def connect(self) -> bool:
         """Connect to the CHARX controller."""
-        self._client = AsyncModbusTcpClient(self._host, port=self._port)
+        if self._client is None:
+            self._client = AsyncModbusTcpClient(self._host, port=self._port)
         return await self._client.connect()
 
     async def close(self) -> None:
@@ -121,10 +122,24 @@ class CharxModbusClient:
         if self._client:
             self._client.close()
 
+    async def _ensure_connected(self) -> None:
+        """Reconnect transparently if the socket has dropped.
+
+        The charger reboots on firmware updates and the LAN can blip; without
+        this, a single dropped connection would wedge every later poll until
+        the integration is reloaded.
+        """
+        if self._client is None:
+            self._client = AsyncModbusTcpClient(self._host, port=self._port)
+        if not self._client.connected:
+            await self._client.connect()
+        if not self._client.connected:
+            raise ModbusException(f"Not connected to {self._host}:{self._port}")
+
     async def _read_holding(self, address: int, count: int) -> list[int]:
         """Read holding registers."""
-        if not self._client:
-            raise ModbusException("Not connected")
+        await self._ensure_connected()
+        assert self._client is not None
         result = await self._client.read_holding_registers(
             address, count=count, device_id=self._slave
         )
@@ -134,8 +149,8 @@ class CharxModbusClient:
 
     async def _write_holding(self, address: int, value: int) -> None:
         """Write a single holding register."""
-        if not self._client:
-            raise ModbusException("Not connected")
+        await self._ensure_connected()
+        assert self._client is not None
         result = await self._client.write_register(
             address, value, device_id=self._slave
         )

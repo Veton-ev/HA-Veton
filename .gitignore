@@ -2,3 +2,6 @@ __pycache__/
 *.py[cod]
 .work/
 output/
+.venv/
+tests/testing_config/
+.pytest_cache/

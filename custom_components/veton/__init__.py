@@ -43,6 +43,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.warning("Could not set watchdog, continuing without it")
 
     session_tracker = SessionTracker(hass, entry.entry_id)
+    await session_tracker.load()
     coordinator = VetonCoordinator(hass, client, session_tracker)
     await coordinator.async_config_entry_first_refresh()
 
@@ -107,4 +108,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         data = hass.data[DOMAIN].pop(entry.entry_id)
         await data["client"].close()
+        # Drop the domain-wide service once the last charger is removed
+        if not hass.data[DOMAIN]:
+            hass.services.async_remove(DOMAIN, "export_sessions_csv")
     return unload_ok

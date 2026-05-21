@@ -9,10 +9,12 @@ import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-
-from homeassistant.core import HomeAssistant
+from typing import TYPE_CHECKING
 
 from .modbus_client import CharxConnectorData
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +47,12 @@ class SessionTrackerState:
 
 
 class SessionTracker:
-    """Tracks charging sessions, detecting start/stop transitions."""
+    """Tracks charging sessions, detecting start/stop transitions.
+
+    Disk I/O is always done on the executor so it never blocks the event loop.
+    Call ``await load()`` once during setup, then ``await update(...)`` every
+    poll cycle.
+    """
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
         self._hass = hass
@@ -73,11 +80,15 @@ class SessionTracker:
     def session_count(self) -> int:
         return len(self._state.sessions)
 
-    def _load(self) -> None:
-        """Load sessions from disk."""
+    async def load(self) -> None:
+        """Load persisted sessions from disk (once), on the executor."""
         if self._loaded:
             return
         self._loaded = True
+        await self._hass.async_add_executor_job(self._read_from_disk)
+
+    def _read_from_disk(self) -> None:
+        """Blocking read of the sessions file — executor only."""
         if self._storage_path.exists():
             try:
                 raw = json.loads(self._storage_path.read_text())
@@ -85,24 +96,24 @@ class SessionTracker:
                     sessions=raw.get("sessions", []),
                     next_id=raw.get("next_id", 1),
                 )
-            except (json.JSONDecodeError, KeyError):
+            except (json.JSONDecodeError, KeyError, OSError):
                 _LOGGER.warning("Could not load session history, starting fresh")
 
-    def _save(self) -> None:
-        """Persist sessions to disk."""
+    def _write_to_disk(self) -> None:
+        """Blocking write of the sessions file — executor only."""
         self._storage_path.parent.mkdir(parents=True, exist_ok=True)
         self._storage_path.write_text(json.dumps({
             "sessions": self._state.sessions[-MAX_SESSIONS:],
             "next_id": self._state.next_id,
         }, indent=2))
 
-    def update(self, data: CharxConnectorData) -> None:
+    async def update(self, data: CharxConnectorData) -> None:
         """Called every poll cycle. Detects session start/end."""
-        self._load()
+        await self.load()
 
         is_charging = data.vehicle_status in ("C1", "C2")
 
-        # Track peak power during session
+        # Track peak power during the active session
         if is_charging and self._current_session:
             power_w = abs(data.active_power_mw) // 1000
             if power_w > self._peak_power_w:
@@ -133,7 +144,7 @@ class SessionTracker:
             self._current_session.max_power_w = self._peak_power_w
 
             self._state.sessions.append(asdict(self._current_session))
-            self._save()
+            await self._hass.async_add_executor_job(self._write_to_disk)
 
             _LOGGER.info(
                 "Charging session #%d ended: %d Wh in %d s",
@@ -147,8 +158,7 @@ class SessionTracker:
         self._was_charging = is_charging
 
     def export_csv(self) -> str:
-        """Export all sessions as CSV string."""
-        self._load()
+        """Export all recorded sessions as a CSV string (uses in-memory state)."""
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow([

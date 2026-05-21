@@ -11,6 +11,14 @@ It exposes the charger as a proper Home Assistant device with sensors,
 controls, and a ready-made dashboard, so you can monitor and control charging
 and build your own automations on top.
 
+## Screenshots
+
+![Veton EV Charger dashboard](docs/images/dashboard-preview.svg)
+
+> The image above is an illustrative mockup of the auto-provisioned dashboard.
+> Real screenshots from a live install are welcome — drop PNGs into
+> `docs/images/` and update this section.
+
 ---
 
 ## Features
