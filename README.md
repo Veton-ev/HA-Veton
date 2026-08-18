@@ -25,7 +25,7 @@ and build your own automations on top.
 
 - 🔌 **Local & private** — direct Modbus/TCP to the charger, `local_polling`, polled every 5 s.
 - 📊 **Rich sensors** — vehicle status (IEC 61851), charging power, session & total energy, per-phase voltage & current, charging/connection time, last RFID, release mode, error code, energy-meter type.
-- 🎛️ **Controls** — enable/disable charging, set connector availability, and a max-charging-current slider (6–80 A).
+- 🎛️ **Controls** — a max-charging-current slider (6–80 A) that works in every release mode, plus charging-release and connector-availability switches for chargers running in Modbus release mode (see [Release mode](#release-mode-what-you-can-actually-control)).
 - 🛡️ **Safety watchdog** — if Home Assistant stops talking to the charger, it falls back to the minimum current after 30 s instead of holding the last setpoint.
 - 🧾 **Session log** — automatic charge-session tracking with RFID, energy and duration, plus a `veton.export_sessions_csv` service.
 - 🖥️ **Auto dashboard** — a dedicated "Veton EV Charger" dashboard is added to your sidebar (it never overrides your existing default dashboard).
@@ -80,10 +80,28 @@ no longer overwrite one another.
 | Type | Examples |
 |------|----------|
 | `sensor` | Vehicle status, charging power, session/total energy, voltage L1–L3, current L1–L3, charging/connection time, last RFID, release mode, error code, energy meter, total sessions |
-| `switch` | Charging enabled, Available |
+| `switch` | Charging enabled (X300), Available (X304) — only active in Modbus release mode, see below |
 | `number` | Max charging current |
 
 Some diagnostic sensors are disabled by default — enable them per entity if you want them.
+
+## Release mode — what you can actually control
+
+Veton chargers ship with **release mode = OCPP** (register `X120` = 4). In that
+mode OCPP owns authorisation and the start/stop of a charge, and the charger
+silently ignores writes to the charging-release (`X300`) and availability
+(`X304`) registers. The **Charging enabled** and **Available** switches are
+therefore shown as **unavailable** on such a charger — rather than pretending
+to work — and the reason is exposed in the entity attributes and logged once.
+
+The supported control for an EMS or automation is the **Max charging current**
+number (`X301`, 6–80 A): it caps the current in *every* release mode, and is
+what Veton's own EMS-integration guide asks third-party systems to use.
+
+The two switches become active on a charger configured with **release mode =
+Modbus** (`X120` = 5) — typically a standalone, non-OCPP deployment. That value
+is set on the charger side (CHARX configuration); this integration only reads
+it and never changes it.
 
 ## Smart charging (solar / dynamic tariff)
 
@@ -96,8 +114,10 @@ charger's entities with:
 - an electricity-price integration (e.g. EnergyZero, Nord Pool, ENTSO-e),
 - and Home Assistant **automations**, or a dedicated charge-optimiser integration.
 
-Set the **Max charging current** number (or toggle **Charging enabled**) from
-your automations to steer the charger.
+Set the **Max charging current** number from your automations to steer the
+charger — that is the control that works on every charger. On a charger in
+Modbus release mode you can additionally toggle **Charging enabled** (see
+[Release mode](#release-mode-what-you-can-actually-control)).
 
 ## Services
 
