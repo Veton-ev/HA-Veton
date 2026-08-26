@@ -23,13 +23,6 @@ jobs:
         with:
           category: integration
 
-  tests:
-    name: Unit tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - run: pip install -r requirements_test.txt
-      - run: pytest -q
+  # Unit tests moved to ci.yml (job `ci`: pytest + secret scan) on 2026-08-26 so there is ONE test
+  # gate that branch protection can require and a deploy workflow could `needs:`. hassfest and HACS
+  # validation stay here — the kit does not cover them — and run alongside `ci`, not gated by it.

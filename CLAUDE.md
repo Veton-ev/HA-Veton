@@ -93,11 +93,22 @@ pytest
 ```
 Coverage: modbus decoders + register mapping + write offsets/clamping +
 reconnect, session-tracker state machine + persistence, config/reconfigure/
-import flows, end-to-end setup/unload, dashboard generation. CI runs hassfest +
-HACS validation + pytest (`.github/workflows/validate.yml`).
+import flows, end-to-end setup/unload, dashboard generation.
+
+CI (every push/PR): `.github/workflows/ci.yml` job `ci` = gitleaks secret scan over the whole
+history + `pip install -r requirements_test.txt` + `python -m pytest -q` on Python 3.13 (the
+required check for branch protection; 42 tests, ~2 s). `.github/workflows/validate.yml` keeps
+hassfest + HACS validation alongside it. Run the same locally before pushing:
+```bash
+python -m pytest -q
+gitleaks git --config .gitleaks.toml --exit-code 1 --log-opts=--all .
+```
+Secret-scan pre-commit hook: `git config core.hooksPath .githooks` once per clone. Agent fences
+(`.claude/settings.json` + `.claude/hooks/guard.sh`) block pushes to main and force-pushes.
 
 For a live smoke test, run HA in Docker with `--network=host` to reach the CHARX:
 ```bash
 docker run -d --name ha --network=host -v /path/to/config:/config homeassistant/home-assistant:stable
 ```
-Deploy to `/config/custom_components/veton/` and restart.
+Deploy to `/config/custom_components/veton/` and restart. There is no deploy pipeline: users
+install via HACS from a tagged release on `main`; rollback = install the previous release.
