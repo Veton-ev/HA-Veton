@@ -52,6 +52,7 @@ jobs:
         with:
           python-version: ${{ vars.PYTHON_VERSION || '3.13' }}   # was 3.13 in validate.yml; HA 2024.12+ needs >=3.12
           cache: pip
+          cache-dependency-path: requirements_test.txt   # default glob only matches requirements.txt (2026-08-29 fix)
 
       - name: Install requirements*.txt (all of them)
         run: |
