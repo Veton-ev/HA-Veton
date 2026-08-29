@@ -1,0 +1,85 @@
+# CI — Python (installed as .github/workflows/ci.yml by kit/apply.sh --lang python)
+#
+# Job id is `ci` on purpose: the deploy workflow does `needs: ci` after calling this file via
+# `workflow_call`, so a deploy can only start from a SHA this exact job passed on.
+# Runs on every push + PR (branch signal before merge) and on workflow_call (from deploy.yml).
+#
+# veton-ha: Home Assistant custom integration. Tests = pytest (tests/, pytest.ini,
+# requirements_test.txt: pytest-homeassistant-custom-component). Lint: ruff/pyflakes are not in the
+# requirements, so the lint step prints "skipped" — add ruff to requirements_test.txt to enable it.
+# Python 3.13 matches what validate.yml used before this file took over the test job; hassfest +
+# HACS validation stay in validate.yml (the kit does not cover them).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitleaks scans the whole history (--log-opts=--all)
+
+      # Secret scan FIRST: a leaked credential must fail the job even if the tests are red.
+      # Pinned binary + verified checksum, run directly — no gitleaks-action (its org-repo license
+      # requirement would leave CI red until someone registers). Whole history is scanned.
+      - name: Secret scan (gitleaks v8.28.0, pinned + sha256-verified)
+        env:
+          GITLEAKS_VERSION: 8.28.0
+          GITLEAKS_SHA256: a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tgz" | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+          /tmp/gitleaks version
+          /tmp/gitleaks git --config .gitleaks.toml --redact --exit-code 1 --no-banner --log-opts="--all" .
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ vars.PYTHON_VERSION || '3.13' }}   # was 3.13 in validate.yml; HA 2024.12+ needs >=3.12
+          cache: pip
+          cache-dependency-path: requirements_test.txt   # default glob only matches requirements.txt (2026-08-29 fix)
+
+      - name: Install requirements*.txt (all of them)
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          found=0
+          for f in requirements*.txt; do
+            [ -f "$f" ] || continue
+            found=1; echo "pip install -r $f"; pip install -r "$f"
+          done
+          if [ -f pyproject.toml ] && [ "$found" = 0 ]; then pip install -e . || true; fi
+          [ "$found" = 1 ] || echo "no requirements*.txt found"
+
+      - name: Lint (ruff → pyflakes → none)
+        run: |
+          set -euo pipefail
+          if command -v ruff >/dev/null 2>&1; then ruff check .
+          elif python -c "import pyflakes" 2>/dev/null; then python -m pyflakes .
+          else echo "neither ruff nor pyflakes installed via requirements — lint skipped"; fi
+
+      - name: Tests (pytest if a tests dir exists, else compileall)
+        run: |
+          set -euo pipefail
+          if [ -d tests ] || [ -d test ] || [ -f pytest.ini ] || [ -f conftest.py ]; then
+            python -c "import pytest" 2>/dev/null || pip install pytest
+            python -m pytest -q
+          else
+            echo "no tests dir — running python -m compileall as a smoke gate"
+            python -m compileall -q .
+          fi
