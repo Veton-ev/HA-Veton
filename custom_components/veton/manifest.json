@@ -1,13 +1,14 @@
 {
   "domain": "veton",
   "name": "Veton EV Charger",
+  "after_dependencies": ["lovelace"],
   "codeowners": ["@veton-be"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/Veton-ev/HA-Veton",
-  "issue_tracker": "https://github.com/Veton-ev/HA-Veton/issues",
   "integration_type": "device",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Veton-ev/HA-Veton/issues",
   "loggers": ["pymodbus"],
   "requirements": ["pymodbus>=3.6.0"],
   "version": "1.1.0"
