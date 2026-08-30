@@ -1,6 +1,7 @@
 {
   "domain": "veton",
   "name": "Veton EV Charger",
+  "after_dependencies": ["lovelace"],
   "codeowners": ["@veton-be"],
   "config_flow": true,
   "dependencies": [],
