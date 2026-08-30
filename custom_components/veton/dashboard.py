@@ -70,14 +70,31 @@ def generate_dashboard_config(entity_ids: list[str]) -> dict:
                 {"entity": _find(entity_ids, "sensor", "total_energy"), "name": "Total Energy", "icon": "mdi:counter"},
             ],
         },
+        # Max Current (X301) leads: it is honoured in every release mode. The two
+        # switch rows are conditional because X300/X304 are only honoured when the
+        # charger's release mode (X120) is Modbus (5) — see switch.py. On the usual
+        # OCPP charger those entities report themselves unavailable, and the
+        # conditional row hides them instead of showing permanently greyed-out rows.
         {
             "type": "entities",
             "title": "Controls",
             "show_header_toggle": False,
             "entities": [
-                {"entity": _find(entity_ids, "switch", "charging_enabled"), "name": "Charging"},
-                {"entity": _find(entity_ids, "switch", "available"), "name": "Available"},
                 {"entity": _find(entity_ids, "number", "max_charging_current"), "name": "Max Current"},
+                {
+                    "type": "conditional",
+                    "conditions": [
+                        {"entity": _find(entity_ids, "switch", "charging_enabled"), "state_not": "unavailable"}
+                    ],
+                    "row": {"entity": _find(entity_ids, "switch", "charging_enabled"), "name": "Charging"},
+                },
+                {
+                    "type": "conditional",
+                    "conditions": [
+                        {"entity": _find(entity_ids, "switch", "available"), "state_not": "unavailable"}
+                    ],
+                    "row": {"entity": _find(entity_ids, "switch", "available"), "name": "Available"},
+                },
             ],
         },
         {

@@ -272,7 +272,12 @@ class CharxModbusClient:
     # --- Write commands ---
 
     async def set_charge_enabled(self, enabled: bool) -> None:
-        """Enable or disable charging (X300)."""
+        """Enable or disable charging release (X300).
+
+        Only writable when the charging release mode (X120) is Modbus (5).
+        In any other mode — Veton chargers ship with OCPP (4) — the controller
+        silently ignores this register and OCPP keeps owning the release.
+        """
         await self._write_holding(self._base + 300, 1 if enabled else 0)
 
     async def set_max_current(self, current_a: int) -> None:
@@ -281,7 +286,12 @@ class CharxModbusClient:
         await self._write_holding(self._base + 301, current_a)
 
     async def set_availability(self, available: bool) -> None:
-        """Set connector availability (X304)."""
+        """Set connector availability (X304).
+
+        Only writable when the charging release mode (X120) is Modbus (5).
+        In any other mode — Veton chargers ship with OCPP (4) — the controller
+        silently ignores this register.
+        """
         await self._write_holding(self._base + 304, 1 if available else 0)
 
     async def set_watchdog(self, fallback_current_a: int, timeout_s: int) -> None:

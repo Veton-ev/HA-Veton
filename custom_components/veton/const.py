@@ -21,7 +21,7 @@ VEHICLE_STATUS = {
     "IN": "Initializing",
 }
 
-# Charging release modes
+# Charging release modes (register X120)
 RELEASE_MODE = {
     0: "Dashboard",
     1: "Local whitelist",
@@ -30,6 +30,12 @@ RELEASE_MODE = {
     4: "OCPP",
     5: "Modbus",
 }
+
+# Only in this release mode does the charger honour writes to the charging
+# release (X300) and availability (X304) registers. Veton chargers ship with
+# release mode = OCPP (4), where OCPP owns authorisation/start/stop and an EMS
+# may only cap the current via X301.
+RELEASE_MODE_MODBUS = 5
 
 # Energy meter types
 ENERGY_METER_TYPE = {
